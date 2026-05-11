@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["admin_management"]
+}
+
+enum Role {
+  admin
+  user
+
+  @@schema("admin_management")
+}
+
+enum SubscriptionStatus {
+  active
+  cancelled
+  expired
+
+  @@schema("admin_management")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  password     String
+  role         Role          @default(user)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  subscription Subscription?
+
+  @@map("users")
+  @@schema("admin_management")
+}
+
+model ProductType {
+  id            String           @id @default(cuid())
+  name          String           @unique
+  description   String?
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  features      ProductFeature[]
+  subscriptions Subscription[]
+
+  @@map("product_types")
+  @@schema("admin_management")
+}
+
+model ProductFeature {
+  id            String      @id @default(cuid())
+  productTypeId String
+  name          String
+  key           String      @unique
+  description   String?
+  isEnabled     Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  productType   ProductType @relation(fields: [productTypeId], references: [id])
+
+  @@map("product_features")
+  @@schema("admin_management")
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  productTypeId          String
+  status                 SubscriptionStatus @default(active)
+  externalSubscriptionId String?
+  startDate              DateTime           @default(now())
+  endDate                DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  user                   User               @relation(fields: [userId], references: [id])
+  productType            ProductType        @relation(fields: [productTypeId], references: [id])
+
+  @@map("subscriptions")
+  @@schema("admin_management")
+}
