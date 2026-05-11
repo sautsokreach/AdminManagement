@@ -24,11 +24,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const body = await req.json();
-  const { name, description, isActive } = body;
+  const { name, description, isActive, priceMonthly, priceYearly } = body;
 
   const type = await db.productType.update({
     where: { id },
-    data: { name, description, isActive },
+    data: {
+      name,
+      description,
+      isActive,
+      priceMonthly: priceMonthly != null ? priceMonthly : undefined,
+      priceYearly: priceYearly != null ? priceYearly : undefined,
+    },
     include: { features: true },
   });
 

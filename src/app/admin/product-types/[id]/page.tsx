@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import PricingForm from "./PricingForm";
 
 export default async function ProductTypeDetailPage({
   params,
@@ -35,6 +36,14 @@ export default async function ProductTypeDetailPage({
         {type.description && <p className="text-sm text-gray-500">{type.description}</p>}
       </div>
 
+      {/* Pricing */}
+      <PricingForm
+        id={type.id}
+        initialMonthly={type.priceMonthly ? Number(type.priceMonthly) : null}
+        initialYearly={type.priceYearly ? Number(type.priceYearly) : null}
+      />
+
+      {/* Features */}
       <div className="rounded-xl bg-white border border-gray-100 shadow-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Features</h2>

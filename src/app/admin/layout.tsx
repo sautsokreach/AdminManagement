@@ -7,6 +7,8 @@ const navItems = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/product-types", label: "Product Types" },
   { href: "/admin/subscriptions", label: "Subscriptions" },
+  { href: "/admin/payment-requests", label: "Payment Requests" },
+  { href: "/admin/settings", label: "Settings" },
   { href: "/api-docs", label: "API Docs" },
 ];
 

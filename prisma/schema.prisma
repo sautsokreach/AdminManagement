@@ -3,10 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-  schemas   = ["admin_management"]
+  provider = "postgresql"
+  schemas  = ["admin_management"]
 }
 
 enum Role {
@@ -20,6 +18,13 @@ enum SubscriptionStatus {
   active
   cancelled
   expired
+
+  @@schema("admin_management")
+}
+
+enum BillingCycle {
+  monthly
+  yearly
 
   @@schema("admin_management")
 }
@@ -43,6 +48,8 @@ model ProductType {
   name          String           @unique
   description   String?
   isActive      Boolean          @default(true)
+  priceMonthly  Decimal?         @db.Decimal(10, 2)
+  priceYearly   Decimal?         @db.Decimal(10, 2)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   features      ProductFeature[]
@@ -72,6 +79,7 @@ model Subscription {
   userId                 String             @unique
   productTypeId          String
   status                 SubscriptionStatus @default(active)
+  billingCycle           BillingCycle       @default(monthly)
   externalSubscriptionId String?
   startDate              DateTime           @default(now())
   endDate                DateTime?
@@ -81,5 +89,14 @@ model Subscription {
   productType            ProductType        @relation(fields: [productTypeId], references: [id])
 
   @@map("subscriptions")
+  @@schema("admin_management")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
   @@schema("admin_management")
 }
