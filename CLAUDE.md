@@ -231,13 +231,11 @@ export default defineConfig({
 });
 ```
 
-**`src/lib/db.ts` — PrismaClient must receive `datasourceUrl` explicitly:**
+**`src/lib/db.ts` — do NOT pass `datasourceUrl` to PrismaClient constructor:**
 ```typescript
-new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-  log: ["error"],
-});
+new PrismaClient({ log: ["error"] });
 ```
+Prisma 7 removed `datasourceUrl` from constructor options. The runtime client reads `DATABASE_URL` from the environment automatically (configured via `prisma.config.ts`).
 
 ### Neon PostgreSQL: Two Connection URLs
 
