@@ -179,6 +179,33 @@ These `key` values must exist as `ProductFeature` records in the database for fe
 
 ---
 
+## Subscription Management — Known Gaps (Not Yet Implemented)
+
+The `/admin/subscriptions` page currently displays subscriptions as a **read-only table** with no actions. The backend already supports all mutations via `PATCH /api/subscriptions/[id]` (fields: `status`, `productTypeId`, `endDate`) but the UI does not expose them yet.
+
+### Missing UI features to build
+
+| Feature | What it should do | API available? |
+|---|---|---|
+| **Cancel subscription** | Set `status = "cancelled"` on the record | Yes — `PATCH /api/subscriptions/[id]` with `{ status: "cancelled" }` |
+| **Change plan** | Update `productTypeId` to a different ProductType | Yes — `PATCH /api/subscriptions/[id]` with `{ productTypeId }` |
+| **Extend / change end date** | Update `endDate` to a new date | Yes — `PATCH /api/subscriptions/[id]` with `{ endDate }` |
+| **View subscription detail** | Show full subscription + linked user + features | Yes — `GET /api/subscriptions/[id]` |
+
+### Why subscriptions may appear empty
+The `Subscription` table is only populated when OnlinePosSystem calls `POST /api/subscriptions` with a service key (on payment confirmation). If a company's `Company.adminUserId` is not set in OnlinePosSystem, the sync call is skipped and no record appears here — even if the company has an active subscription in OnlinePosSystem.
+
+### To implement Cancel / Change Plan
+Add action buttons to each row in `src/app/admin/subscriptions/page.tsx`. Make it a client component and call `PATCH /api/subscriptions/[id]` with the relevant fields. The page currently lives at:
+
+| File | Purpose |
+|---|---|
+| `src/app/admin/subscriptions/page.tsx` | Read-only list — needs action buttons added |
+| `src/app/api/subscriptions/[id]/route.ts` | `GET` + `PATCH` — already supports `status`, `productTypeId`, `endDate` |
+| `src/app/api/subscriptions/route.ts` | `GET` all + `POST` create (used by POS service sync) |
+
+---
+
 ## KHQR System Settings
 
 Stored in the `SystemSetting` table. Edit via Admin → Settings.
