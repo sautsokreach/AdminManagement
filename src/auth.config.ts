@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 
 // Edge-safe config: no db, no bcryptjs — used by middleware for JWT verification only.
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
   session: { strategy: "jwt" },
   providers: [],
   callbacks: {
