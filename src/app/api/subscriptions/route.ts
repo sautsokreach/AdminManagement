@@ -1,78 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-export async function GET() {
-  const session = await auth();
-  if (session?.user?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+const SERVICE_KEY = process.env.SERVICE_API_KEY;
 
-  const subscriptions = await db.subscription.findMany({
+function isServiceAuth(req: NextRequest) {
+  return SERVICE_KEY && req.headers.get("x-service-key") === SERVICE_KEY;
+}
+
+// GET — admin session only
+export async function GET(req: NextRequest) {
+  if (!isServiceAuth(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const subs = await db.subscription.findMany({
     include: {
       user: { select: { id: true, email: true, name: true } },
-      productType: { include: { features: true } },
+      productType: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
-
-  return NextResponse.json(subscriptions);
+  return NextResponse.json(subs);
 }
 
+// POST — called by OnlinePosSystem after confirming a payment
+// Accepts service key auth
+// Body: { userId, productTypeName, billingCycle, externalSubscriptionId, endDate }
 export async function POST(req: NextRequest) {
-  // Allow both admin-session calls and service-key calls (from OnlinePosSystem on payment confirm)
-  const serviceKey = req.headers.get("x-service-key");
-  const isServiceCall = serviceKey && serviceKey === process.env.SERVICE_API_KEY;
-
-  if (!isServiceCall) {
-    const session = await auth();
-    if (session?.user?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (!isServiceAuth(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await req.json();
-  const { userId, productTypeId, productTypeName, billingCycle, externalSubscriptionId, endDate } = body;
+  const { userId, productTypeName, billingCycle, externalSubscriptionId, endDate } = body;
 
-  if (!userId || (!productTypeId && !productTypeName)) {
-    return NextResponse.json({ error: "userId and productTypeId (or productTypeName) are required" }, { status: 400 });
+  if (!userId || !productTypeName) {
+    return NextResponse.json({ error: "userId and productTypeName are required" }, { status: 400 });
   }
 
-  const user = await db.user.findUnique({ where: { id: userId }, select: { id: true } });
-  if (!user) {
-    return NextResponse.json({ error: `User not found: ${userId}` }, { status: 404 });
-  }
-
-  // Resolve productType by id or by name
-  let productType = productTypeId
-    ? await db.productType.findUnique({ where: { id: productTypeId }, select: { id: true } })
-    : await db.productType.findUnique({ where: { name: productTypeName }, select: { id: true } });
-
+  const productType = await db.productType.findFirst({
+    where: { name: productTypeName, isActive: true },
+  });
   if (!productType) {
-    return NextResponse.json({ error: "Product type not found" }, { status: 404 });
+    return NextResponse.json({ error: `Plan "${productTypeName}" not found` }, { status: 404 });
   }
-  const resolvedProductTypeId = productType.id;
 
   const subscription = await db.subscription.upsert({
     where: { userId },
+    update: {
+      productTypeId: productType.id,
+      status: "active",
+      billingCycle: billingCycle ?? "monthly",
+      externalSubscriptionId,
+      startDate: new Date(),
+      endDate: endDate ? new Date(endDate) : null,
+    },
     create: {
       userId,
-      productTypeId: resolvedProductTypeId,
-      externalSubscriptionId,
-      billingCycle: billingCycle ?? "monthly",
-      endDate: endDate ? new Date(endDate) : undefined,
+      productTypeId: productType.id,
       status: "active",
-    },
-    update: {
-      productTypeId: resolvedProductTypeId,
-      externalSubscriptionId,
       billingCycle: billingCycle ?? "monthly",
-      endDate: endDate ? new Date(endDate) : undefined,
-      status: "active",
-    },
-    include: {
-      user: { select: { id: true, email: true, name: true } },
-      productType: true,
+      externalSubscriptionId,
+      endDate: endDate ? new Date(endDate) : null,
     },
   });
 

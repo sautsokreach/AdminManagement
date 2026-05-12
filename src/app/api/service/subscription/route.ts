@@ -1,21 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// Service-to-service endpoint — authenticated by X-Service-Key header, not by user session.
-// Called by OnlinePosSystem to resolve which feature keys are active for a given company.
+const SERVICE_KEY = process.env.SERVICE_API_KEY;
+
+// GET /api/service/subscription?adminUserId=<id>
+// Returns { features: string[] } — the enabled feature keys for the user's active subscription
 export async function GET(req: NextRequest) {
-  const serviceKey = req.headers.get("x-service-key");
-  if (!serviceKey || serviceKey !== process.env.SERVICE_API_KEY) {
+  if (!SERVICE_KEY || req.headers.get("x-service-key") !== SERVICE_KEY) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const adminUserId = req.nextUrl.searchParams.get("adminUserId");
   if (!adminUserId) {
-    return NextResponse.json({ error: "adminUserId is required" }, { status: 400 });
+    return NextResponse.json({ features: [] });
   }
 
-  const subscription = await db.subscription.findUnique({
-    where: { userId: adminUserId },
+  const subscription = await db.subscription.findFirst({
+    where: {
+      userId: adminUserId,
+      status: "active",
+    },
     include: {
       productType: {
         include: { features: { where: { isEnabled: true } } },
@@ -23,10 +27,10 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  if (!subscription || subscription.status !== "active") {
+  if (!subscription) {
     return NextResponse.json({ features: [] });
   }
 
   const features = subscription.productType.features.map((f) => f.key);
-  return NextResponse.json({ features, productType: subscription.productType.name });
+  return NextResponse.json({ features });
 }
