@@ -106,7 +106,7 @@ npm run db:seed    # Seed the database
 ## Key Principles
 
 1. **Features are data, not code** — Admins add/remove features from product types via the admin UI. No deployment needed.
-2. **Payment confirmation happens in OnlinePosSystem** — This project stores the subscription record after OnlinePosSystem calls `POST /api/subscriptions` with a service key on payment confirmation.
+2. **Payment confirmation is automatic in OnlinePosSystem** — When a user clicks "I've Made the Payment", OnlinePosSystem verifies the transaction against the Bakong API (`check_transaction_by_md5`) and, if confirmed, calls `POST /api/subscriptions` here with a service key. No admin approval step is required. This project stores the resulting subscription record.
 3. **Role-based access** — All `/admin/*` pages and `/api/*` mutation endpoints require `role = admin`. Service endpoints require `X-Service-Key` header.
 4. **Soft deletes** — ProductTypes and Features use `isActive` / `isEnabled` flags. Never hard-delete to preserve subscription history.
 
@@ -145,7 +145,7 @@ npm run db:seed    # Seed the database
 1. Each **Company** in OnlinePosSystem has an `adminUserId` field pointing to a **User** here.
 2. OnlinePosSystem calls `GET /api/service/subscription?adminUserId=...` to check which feature keys are active for a company.
 3. OnlinePosSystem calls `GET /api/service/pricing` to get plan pricing, trial duration, and KHQR config for the subscribe page.
-4. When a company's payment is confirmed in OnlinePosSystem, it calls `POST /api/subscriptions` with the service key to create/update the subscription here.
+4. When a company's payment is auto-confirmed in OnlinePosSystem (user-triggered, no admin step), it calls `POST /api/subscriptions` with the service key to create/update the subscription here.
 
 ### Environment Variables
 ```env
@@ -174,7 +174,7 @@ These `key` values must exist as `ProductFeature` records in the database for fe
 4. **Set plan pricing** → Admin → Product Types → [plan] → Save Pricing (monthly/yearly)
 5. **Add features to a plan** → Admin → Product Types → [plan] → Add Feature (set `key` carefully — it must match what OnlinePosSystem checks)
 6. **Link a company** → Create a User here → copy the User ID → set it as `Company.adminUserId` in OnlinePosSystem
-7. **Activate a subscription** → Happens automatically when OnlinePosSystem confirms a payment. Can also be done manually via POST `/api/subscriptions`.
+7. **Activate a subscription** → Happens automatically when the user clicks "I've Made the Payment" in OnlinePosSystem (no admin step). Can also be triggered manually via `POST /api/subscriptions` with the service key.
 8. **View payment requests** → Admin → Payment Requests (links to OnlinePosSystem admin)
 
 ---
