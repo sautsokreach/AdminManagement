@@ -37,5 +37,5 @@ export async function GET(req: NextRequest) {
   }
 
   const features = subscription.productType.features.map((f) => f.key);
-  return NextResponse.json({ features });
+  return NextResponse.json({ features, planName: subscription.productType.name });
 }
