@@ -85,6 +85,19 @@ npm run db:seed    # Seed the database
 - Examples: `free`, `basic`, `pro`, `enterprise`
 - Extensible — add new plans without code changes
 
+#### Recommended Pricing (USD, Cambodia market)
+
+| Plan | Monthly | Yearly | Included features |
+|---|---|---|---|
+| Free / Trial | $0 | — | Basic sales only (trial: 30 days) |
+| Basic | $9/mo | $89/yr | Sales + stock management |
+| Pro | $19/mo | $179/yr | Sales + stock + reports + purchases |
+| Enterprise | $39/mo | $349/yr | Everything + priority support |
+
+- Yearly discount: ~15–20% off monthly rate
+- Currency: USD (default); switch to KHR via `khqr_currency` system setting if needed
+- Pricing is stored in `ProductType.priceMonthly` / `priceYearly` and editable at runtime via Admin → Product Types → [plan] → Save Pricing — no deployment needed
+
 ### ProductFeature
 - `id`, `productTypeId` (FK), `name`, `key`, `description`, `isEnabled`
 - `key` is a unique slug used by OnlinePosSystem to check access
