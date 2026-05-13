@@ -133,21 +133,21 @@ npm run db:seed    # Seed the database
 
 | Path | Method | Purpose |
 |---|---|---|
-| `app/api/service/subscription` | GET `?adminUserId=` | Returns `{ features: string[] }` for the user's active subscription |
+| `app/api/service/subscription` | GET `?email=` | Returns `{ features: string[] }` for the company's active subscription |
 | `app/api/service/pricing` | GET | Returns all active plans with pricing, `trialDays`, and KHQR merchant config |
-| `app/api/service/upsert-user` | POST `{ email, name }` | Find-or-create a User by email; returns `{ userId }`. Used by OnlinePosSystem to auto-link companies on first confirmation. Creates user with a random unusable password (account is POS-managed only). |
-| `app/api/subscriptions` | POST | Also accepts service key (used by OnlinePosSystem to sync after payment confirmation) |
+| `app/api/service/sync-subscription` | POST `{ email, name, planName, billingCycle, referenceCode, endDate }` | Finds-or-creates User by email, upserts Subscription. Single call for all sync needs. |
+
+> `POST /api/subscriptions` still works (service key auth) for direct subscription creation, but `sync-subscription` is the preferred entry point from OnlinePosSystem.
 
 ---
 
 ## Integration with OnlinePosSystem
 
 ### How it works
-1. Each **Company** in OnlinePosSystem has an `adminUserId` field pointing to a **User** here.
-2. `adminUserId` is set **automatically** — on the first payment confirmation, OnlinePosSystem calls `POST /api/service/upsert-user` to find or create the User by the company admin's email, then stores the returned `userId` as `Company.adminUserId`. No manual linking is needed.
-3. OnlinePosSystem calls `GET /api/service/subscription?adminUserId=...` to check which feature keys are active for a company.
-4. OnlinePosSystem calls `GET /api/service/pricing` to get plan pricing, trial duration, and KHQR config for the subscribe page.
-5. When a company's payment is confirmed, OnlinePosSystem calls `POST /api/subscriptions` with the service key to create/update the subscription here.
+1. OnlinePosSystem identifies companies to AdminManagement by **email** (`Company.email`, set at registration). There is no `adminUserId` stored in OnlinePosSystem.
+2. On payment confirmation, OnlinePosSystem calls `POST /api/service/sync-subscription` with the company email + plan info. AdminManagement finds-or-creates the internal `User` record and upserts the `Subscription`. No pre-linking step needed.
+3. OnlinePosSystem calls `GET /api/service/subscription?email=...` to check which feature keys are active for a company.
+4. OnlinePosSystem calls `GET /api/service/pricing` to get plan pricing, trial duration, and KHQR config.
 
 ### Environment Variables
 ```env
